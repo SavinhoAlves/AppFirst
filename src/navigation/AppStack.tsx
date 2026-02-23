@@ -10,6 +10,8 @@ import GestaoMembros from '../screens/Admin/GestaoMembros';
 import CarteiraScreen from '../screens/Carteira';
 import ResetPasswordScreen from '../screens/ResetPassword'; // Ajuste o caminho conforme sua pasta
 import AdminRegisterMember from '../screens/Admin/RegisterMember';
+import VantagensScreen from '../screens/Vantagens';
+import SugerirBeneficioScreen from '../screens/SugerirVantagens';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -52,6 +54,11 @@ export function AppStack() {
         component={ResetPasswordScreen} 
         options={{ gestureEnabled: false }} // Evita que o usuário "volte" sem trocar a senha
       />
+
+      {/* ADICIONE ESTA LINHA: */}
+      <Stack.Screen name="Vantagens" component={VantagensScreen} />
+
+      <Stack.Screen name="SugerirBeneficio" component={SugerirBeneficioScreen} />
 
       {/* 3. Gestão de Membros */}
       <Stack.Screen 

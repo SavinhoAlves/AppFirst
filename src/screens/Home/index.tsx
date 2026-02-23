@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { LogoImg } from '../../assets/logo-capitania-3.png';
 
 const MASTER_EMAIL = 'savioalves169@gmail.com';
 
@@ -24,32 +25,25 @@ export default function HomeScreen({ navigation }: any) {
     getProfile();
   }, []);
 
-  // Dentro da sua HomeScreen...
+  async function handleCheckIn() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-async function handleCheckIn() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return;
+      const { error } = await supabase
+        .from('checkins')
+        .insert([{ socio_id: user.id }]);
 
-    // Inserir registro na tabela checkins
-    const { error } = await supabase
-      .from('checkins')
-      .insert([
-        { socio_id: user.id }
-      ]);
+      if (error) throw error;
 
-    if (error) throw error;
-
-    Alert.alert(
-      "📍 Check-in Realizado!",
-      "Sua presença na Capitania Cruz de Malte foi registrada com sucesso. Aproveite o jogo!"
-    );
-  } catch (error: any) {
-    Alert.alert("Erro no Check-in", "Não foi possível registrar sua presença agora.");
-    console.error(error);
+      Alert.alert(
+        "📍 Check-in Realizado!",
+        "Sua presença na Capitania Cruz de Malte foi registrada com sucesso."
+      );
+    } catch (error: any) {
+      Alert.alert("Erro no Check-in", "Não foi possível registrar sua presença agora.");
+    }
   }
-}
 
 // No seu componente, procure o botão de Check-in e mude o onPress:
 <TouchableOpacity style={styles.actionBtn} onPress={handleCheckIn}>
@@ -77,60 +71,63 @@ async function handleCheckIn() {
       {/* CARD DE SÓCIO ESTILIZADO (MURALHA) */}
       <View style={styles.mainCard}>
         <LinearGradient colors={['#000', '#1A1A1A']} style={styles.cardGradient}>
+          
+          {/* Nova estrutura unificada: Nome/Email à esquerda, Tag à direita */}
           <View style={styles.cardHeader}>
-             <Image 
-               source={{ uri: '../../assets/logo-capitania-3.png' }} 
-               style={styles.cardShield} 
-             />
-             <View style={[
-                styles.tag, 
-                (profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') && { backgroundColor: '#D4AF37' } // Cor dourada para o Master
-                ]}>
-                <Text style={[
-                    styles.tagText,
-                    (profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') && { color: '#000' }
-                ]}>
-                    { (profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') 
-                    ? 'MASTER' 
-                    : profile?.role === 'admin' 
-                        ? 'ADMIN' 
-                        : 'SÓCIO' 
-                    }
-                </Text>
+            <View style={{ flex: 1 }}> 
+              <Text style={styles.cardUserName}>{profile?.full_name || 'Vascaíno de Honra'}</Text>
+              <Text style={styles.cardEmail}>{profile?.email}</Text>
+            </View>
+
+            <View style={[
+              styles.tag, 
+              (profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') && { backgroundColor: '#D4AF37' }
+            ]}>
+              <Text style={[
+                styles.tagText,
+                (profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') && { color: '#000' }
+              ]}>
+                {(profile?.role === 'master' || profile?.email === 'savioalves169@gmail.com') 
+                  ? 'MASTER' 
+                  : profile?.role === 'admin' ? 'ADMIN' : 'SÓCIO'}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.cardBody}>
-            <Text style={styles.cardUserName}>{profile?.full_name || 'Vascaíno de Honra'}</Text>
-            <Text style={styles.cardEmail}>{profile?.email}</Text>
-          </View>
-
+          {/* Footer com informações de Status e Membro */}
           <View style={styles.cardFooter}>
             <View style={styles.infoBox}>
-               <Text style={styles.infoLabel}>STATUS</Text>
-               <Text style={[styles.infoValue, { color: profile?.is_active ? '#4ADE80' : '#F87171' }]}>
+              <Text style={styles.infoLabel}>STATUS</Text>
+              <Text style={[styles.infoValue, { color: profile?.is_active ? '#4ADE80' : '#F87171' }]}>
                 {profile?.is_active ? 'ATIVO' : 'PENDENTE'}
-               </Text>
+              </Text>
             </View>
             <View style={styles.infoBox}>
-               <Text style={styles.infoLabel}>MEMBRO Nº</Text>
-               <Text style={styles.infoValue}>#00{profile?.id.slice(0, 3)}</Text>
+              <Text style={styles.infoLabel}>MEMBRO Nº</Text>
+              <Text style={styles.infoValue}>#00{profile?.id?.slice(0, 3)}</Text>
             </View>
           </View>
+
         </LinearGradient>
       </View>
 
       {/* AÇÕES RÁPIDAS */}
       <View style={styles.actionContainer}>
-         <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('CARTEIRA')}>
-            <Ionicons name="qr-code" size={24} color="#FFF" />
-            <Text style={styles.actionText}>Check-in Sede</Text>
-         </TouchableOpacity>
-         
-         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#D4AF37' }]} onPress={() => Alert.alert('Mensalidade', 'Abrindo área de pagamento...')}>
-            <Ionicons name="receipt" size={24} color="#000" />
-            <Text style={[styles.actionText, { color: '#000' }]}>Mensalidade</Text>
-         </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.actionBtn} 
+          onPress={() => navigation.navigate('Vantagens')} // Correto: vai para a lista de benefícios
+        >
+          <Ionicons name="trophy" size={24} color="#FFF" />
+          <Text style={styles.actionText}>Vantagens</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionBtn, { backgroundColor: '#D4AF37' }]} 
+          onPress={() => Alert.alert('Mensalidade', 'Abrindo área de pagamento...')}
+        >
+          <Ionicons name="receipt" size={24} color="#000" />
+          <Text style={[styles.actionText, { color: '#000' }]}>Mensalidade</Text>
+        </TouchableOpacity>
       </View>
 
       {/* PAINEL DE CONTROLE (SÓ VOCÊ) */}
@@ -161,25 +158,57 @@ async function handleCheckIn() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, paddingTop: 60, marginBottom: 20 },
+  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, paddingTop: 50, marginBottom: 20 },
   capitaniaLabel: { fontSize: 12, color: '#888', fontWeight: 'bold', letterSpacing: 2 },
   capitaniaName: { fontSize: 24, fontWeight: '900', color: '#000' },
   profileBtn: { width: 45, height: 45, borderRadius: 22.5, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
   avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 22.5, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#FFF', fontWeight: 'bold' },
-  mainCard: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', elevation: 15, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
-  cardGradient: { padding: 25 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  cardHeader: { 
+  flexDirection: 'row', 
+  justifyContent: 'space-between', 
+  alignItems: 'center', // Alinha a tag no centro vertical do bloco de nome/email
+  marginBottom: 10 // Reduz o espaço interno para o card ficar menor
+},
+cardUserName: { 
+  color: '#FFF', 
+  fontSize: 20, // Diminuí um pouco para equilibrar com a tag
+  fontWeight: 'bold' 
+},
+cardEmail: { 
+  color: '#888', 
+  fontSize: 13, 
+  marginTop: 2 
+},
+mainCard: { 
+  marginHorizontal: 20, 
+  borderRadius: 20, // Curva um pouco menor para combinar com o card mais fino
+  overflow: 'hidden', 
+  boxShadow: "0px 8px 15px rgba(0, 0, 0, 0.4)", // Sombra corrigida para Web
+  elevation: 10 
+},
+cardGradient: { 
+  padding: 20 // Reduzi o padding interno para compactar o card
+},
+cardFooter: { 
+  flexDirection: 'row', 
+  marginTop: 20, 
+  borderTopWidth: 1, 
+  borderTopColor: 'rgba(255,255,255,0.08)', 
+  paddingTop: 15 
+},
+  // cardGradient: { padding: 25 },
+  // cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardShield: { width: 40, height: 50, resizeMode: 'contain' },
   tag: { backgroundColor: 'rgba(212, 175, 55, 0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#D4AF37' },
   tagText: { color: '#D4AF37', fontSize: 10, fontWeight: 'bold' },
   cardBody: { marginTop: 30 },
-  cardUserName: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
-  cardEmail: { color: '#888', fontSize: 14, marginTop: 4 },
-  cardFooter: { flexDirection: 'row', marginTop: 30, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 20 },
+  // cardUserName: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
+  // cardEmail: { color: '#888', fontSize: 14, marginTop: 4 },
+  // cardFooter: { flexDirection: 'row', marginTop: 30, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 20 },
   infoBox: { marginRight: 40 },
   infoLabel: { color: '#555', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
-  infoValue: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
+  infoValue: { color: '#FFF', fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase' },
   actionContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 25 },
   actionBtn: { backgroundColor: '#000', width: '48%', height: 60, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   actionText: { color: '#FFF', fontWeight: 'bold', marginLeft: 10 },

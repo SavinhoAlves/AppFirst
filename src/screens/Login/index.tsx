@@ -102,7 +102,7 @@ function LoginContent({ navigation }: any) {
 
             <View style={styles.form}>
               <CustomInput 
-                label="Acesso por CPF" 
+                label="CPF" 
                 placeholder="000.000.000-00" 
                 value={cpfDisplay} 
                 onChangeText={handleCpfChange}
@@ -113,7 +113,7 @@ function LoginContent({ navigation }: any) {
               <View style={styles.passwordWrapper}>
                 <CustomInput 
                   label="Senha" 
-                  placeholder="Sua senha secreta" 
+                  placeholder="Digite sua senha" 
                   value={password} 
                   onChangeText={setPassword} 
                   secureTextEntry={!showPassword}
@@ -178,14 +178,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between' 
   },
   contentUpper: { flex: 1, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: 20 },
+  header: { alignItems: 'center', marginBottom: 80 },
   logo: { width: 150, height: 150 }, //
   form: { width: '100%' },
   passwordWrapper: { position: 'relative' },
   eyeIcon: { 
     position: 'absolute', 
     right: 15, 
-    top: 45, // Alinhado com o centro do input
+    top: 35, // Alinhado com o centro do input
     zIndex: 10 
   },
   button: { 

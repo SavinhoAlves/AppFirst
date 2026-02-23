@@ -61,7 +61,7 @@ export default function ManageUsers() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB', paddingTop: 60 },
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB', paddingTop: 20 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
   userCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   email: { fontWeight: 'bold' },

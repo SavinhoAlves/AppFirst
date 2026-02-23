@@ -8,7 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
-    persistSession: false, // Desativamos o persistSession para evitar conflitos com a Trigger
+    persistSession: true, // Volte para true para estabilizar o desenvolvimento
     detectSessionInUrl: false,
   },
 });

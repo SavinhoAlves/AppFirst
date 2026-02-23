@@ -37,13 +37,14 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     fontSize: 16,
-    color: '#000', // Garante que o texto digitado seja visível
+    color: '#000',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    
+    // ✅ NOVO PADRÃO (Substitui shadowColor, shadowOffset, shadowOpacity e shadowRadius)
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.05)",
+    
+    // Mantenha o elevation para garantir a sombra no Android físico
     elevation: 2,
   },
 });
