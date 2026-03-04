@@ -16,58 +16,82 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Adicionei a prop 'navigation' para você conseguir abrir a gestão de sócios
 export default function HomeScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [nextMatch, setNextMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      const [profileResponse, matchData] = await Promise.all([
-        fetchUserProfile(),
-        getNextMatch()
-      ]);
-      setUserProfile(profileResponse);
-      setNextMatch(matchData);
-      setLoading(false);
-      requestPermissions();
-    }
-    loadData();
-  }, []);
+  // Define se o usuário é VIP (Sócio Ativo)
+  // Se o perfil existir e 'is_active' for true, ele é VIP.
+  const isVip = userProfile?.is_active === true;
 
-  async function requestPermissions() {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('Permissão de notificação negada');
-    }
-  }
-
-  async function fetchUserProfile() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      return data;
-    }
-    return null;
-  }
-
+  // 1. Formatação de Data
   const formatEventDate = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
+    if (!timestamp) return "";
+    const date = new Date(timestamp * 1000); 
     const day = date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
     const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     return `${day.toUpperCase()} • ${time}`;
   };
 
-  async function handleSetReminder() {
-    if (!nextMatch) return;
-    const gameTime = nextMatch.timestamp * 1000;
-    const reminderTime = new Date(gameTime - 15 * 60 * 1000); 
-    const now = new Date();
+  // 2. Permissões de Notificação
+  async function requestPermissions() {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') console.log('Permissão de notificação negada');
+  }
 
-    if (reminderTime < now) {
-      Alert.alert("Atenção", "O jogo já está muito próximo ou já começou!");
+  // 3. Carregamento de Dados
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const [profileRes, matchData] = await Promise.all([
+          user ? supabase.from('profiles').select('*').eq('id', user.id).single() : null,
+          getNextMatch() 
+        ]);
+
+        if (profileRes?.data) setUserProfile(profileRes.data);
+        setNextMatch(matchData);
+        
+        await requestPermissions();
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // 4. Lógica de Navegação
+  const handleNavigation = (screenName: string) => {
+    if (!screenName) return;
+    navigation.navigate(screenName);
+  };
+
+  const handleFinanceiro = () => {
+    if (userProfile?.role === 'master' || userProfile?.role === 'admin') {
+      navigation.navigate('Financeiro');
+    } else {
+      Alert.alert("Acesso Restrito", "Apenas administradores podem acessar o financeiro.");
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert("Sair", "Deseja encerrar sua sessão?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sair", onPress: () => supabase.auth.signOut(), style: "destructive" }
+    ]);
+  };
+
+  const handleSetReminder = async () => {
+    if (!nextMatch) return;
+    const reminderTime = new Date((nextMatch.timestamp * 1000) - 15 * 60 * 1000); 
+    
+    if (reminderTime < new Date()) {
+      Alert.alert("Atenção", "O jogo já está muito próximo!");
       return;
     }
 
@@ -75,16 +99,15 @@ export default function HomeScreen({ navigation }: any) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "💢 O GIGANTE VAI JOGAR!",
-          body: `${nextMatch.homeTeam.name} x ${nextMatch.awayTeam.name} começa em 15 minutos!`,
-          sound: true,
+          body: `${nextMatch.homeTeam.name} x ${nextMatch.awayTeam.name} em 15 min!`,
         },
         trigger: { date: reminderTime } as Notifications.DateTriggerInput,
       });
-      Alert.alert("Lembrete Ativado", "A Capitania te avisará 15 minutos antes do apito inicial!");
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível agendar o lembrete.");
+      Alert.alert("Sucesso", "Lembrete ativado!");
+    } catch (e) {
+      Alert.alert("Erro", "Não foi possível agendar.");
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -98,27 +121,23 @@ export default function HomeScreen({ navigation }: any) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         
+        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.welcome}>Saudações Vascaínas,</Text>
-            <Text style={styles.userName}>{userProfile?.full_name || "Sávio Alves"}</Text>
-            {/* Reativado o selo para o Master User */}
-            {userProfile?.role === 'master' && (
-              <Text style={styles.masterBadge}>🏆 MASTER USER</Text>
-            )}
+            <Text style={styles.userName}>{userProfile?.full_name || "Sócio"}</Text>
           </View>
-          <TouchableOpacity onPress={() => supabase.auth.signOut()} style={styles.logoutBtn}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
             <Ionicons name="log-out-outline" size={20} color="#666" />
           </TouchableOpacity>
         </View>
 
+        {/* Card de Jogo */}
         <View style={styles.matchCard}>
-          {/* Cabeçalho do Card: Badge à esquerda e Sino à direita */}
           <View style={styles.cardHeader}>
             <View style={styles.matchBadge}>
               <Text style={styles.matchBadgeText}>{nextMatch?.tournament || 'PRÓXIMO JOGO'}</Text>
             </View>
-            
             {nextMatch && (
               <TouchableOpacity onPress={handleSetReminder} style={styles.bellIcon}>
                 <Ionicons name="notifications-outline" size={20} color="#D4AF37" />
@@ -147,37 +166,77 @@ export default function HomeScreen({ navigation }: any) {
               </View>
             </>
           ) : (
-            <Text style={styles.matchDetails}>Buscando o próximo jogo do Vasco...</Text>
+            <Text style={styles.matchDetails}>Buscando o próximo jogo...</Text>
           )}
         </View>
 
+        {/* Card de Vantagens (Logo abaixo do jogo conforme solicitado) */}
+        <View style={styles.vantagensCard}>
+          <View style={styles.vantagensHeader}>
+            <Ionicons name="star" size={18} color="#D4AF37" />
+            <Text style={styles.vantagensTitle}>CLUBE DE VANTAGENS</Text>
+          </View>
+          
+          <Text style={styles.vantagensText}>
+            {isVip 
+              ? "Você tem 15% de desconto em toda a rede parceira para o próximo jogo!" 
+              : "Torne-se sócio VIP e libere descontos exclusivos em barbearias e bares!"}
+          </Text>
+
+          <TouchableOpacity 
+            style={styles.vantagensBtn}
+            onPress={() => isVip ? handleNavigation('Vantagens') : handleNavigation('Financeiro')}
+          >
+            <Text style={styles.vantagensBtnText}>
+              {isVip ? "VER PARCEIROS" : "QUERO SER VIP"}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color="#1A1A1A" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Grade de Serviços */}
         <Text style={styles.sectionTitle}>SERVIÇOS DA CAPITANIA</Text>
         <View style={styles.menuGrid}>
-          <MenuCard title="Cruz de Malte" icon="beer-outline" />
-          <MenuCard title="Eventos" icon="calendar-outline" />
-          <MenuCard title="Caravanas" icon="bus-outline" />
+          <MenuCard 
+            title="Cruz de Malte" 
+            icon="beer-outline" 
+            onPress={() => handleNavigation('CruzDeMalte')} 
+          />
+          <MenuCard 
+            title="Eventos" 
+            icon="calendar-outline" 
+            onPress={() => handleNavigation('Eventos')} 
+          />
+          <MenuCard 
+            title="Caravanas" 
+            icon="bus-outline" 
+            onPress={() => handleNavigation('Caravanas')} 
+          />
           
-          {/* Botão Gestão Sócios agora funcional para o Master */}
-          <TouchableOpacity 
-            style={styles.card} 
-            onPress={() => navigation.navigate('SocioManagement')}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons name="people-outline" size={26} color="#FFF" />
-            </View>
-            <Text style={styles.cardTitle}>Gestão Sócios</Text>
-          </TouchableOpacity>
+          {(userProfile?.role === 'admin' || userProfile?.role === 'master') && (
+             <MenuCard 
+             title="Gestão Sócios" 
+             icon="people-outline" 
+             onPress={() => handleNavigation('SocioManagement')} 
+           />
+          )}
+
+          <MenuCard 
+            title="Financeiro" 
+            icon="wallet-outline" 
+            onPress={handleFinanceiro} 
+          />
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function MenuCard({ title, icon }: { title: string, icon: any }) {
+function MenuCard({ title, icon, onPress }: { title: string, icon: any, onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={26} color="#FFF" />
+        <Ionicons name={icon} size={26} color="#464646" />
       </View>
       <Text style={styles.cardTitle}>{title}</Text>
     </TouchableOpacity>
@@ -185,32 +244,37 @@ function MenuCard({ title, icon }: { title: string, icon: any }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F0F' },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
   center: { justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 25 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
-  welcome: { color: '#888', fontSize: 13 },
-  userName: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
-  masterBadge: { color: '#D4AF37', fontSize: 10, fontWeight: '900', marginTop: 4, letterSpacing: 1 },
-  logoutBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center' },
-  matchCard: { backgroundColor: '#151515', borderRadius: 20, padding: 20, marginBottom: 35, borderWidth: 1, borderColor: '#222' },
-  // matchBadge: { backgroundColor: '#D4AF3720', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 15 },
-  matchBadgeText: { color: '#D4AF37', fontSize: 10, fontWeight: '900' },
-  matchInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  content: { padding: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
+  welcome: { color: '#666', fontSize: 13, fontWeight: '500' },
+  userName: { color: '#1A1A1A', fontSize: 24, fontWeight: '800' },
+  masterBadgeText: { color: '#B8860B', fontSize: 10, fontWeight: '900', marginTop: 4, letterSpacing: 1 },
+  logoutBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
+  matchCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: '#EAEAEA' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  matchBadge: { backgroundColor: '#D4AF3715', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  matchBadgeText: { color: '#D4AF37', fontSize: 11, fontWeight: '800' },
+  bellIcon: { padding: 8, backgroundColor: '#F8F9FA', borderRadius: 12 },
+  matchInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   team: { alignItems: 'center', flex: 1 },
-  teamLogo: { width: 50, height: 50, marginBottom: 8, resizeMode: 'contain', backgroundColor: 'transparent'},
-  teamName: { color: '#FFF', fontWeight: '900', fontSize: 13, textAlign: 'center' },
-  vsText: { color: '#444', fontWeight: '900', fontSize: 16, marginHorizontal: 10 },
-  matchFooter: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#222', paddingTop: 12 },
-  matchDetails: { color: '#888', fontSize: 11, marginLeft: 5 },
-  reminderBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D4AF3715', paddingVertical: 10, borderRadius: 12, marginTop: 15, borderWidth: 1, borderColor: '#D4AF3730' },
-  reminderBtnText: { color: '#D4AF37', fontSize: 10, fontWeight: '900', marginLeft: 8, letterSpacing: 1 },
-  sectionTitle: { color: '#FFF', fontSize: 12, fontWeight: '900', marginBottom: 20 },
+  teamLogo: { width: 50, height: 50, marginBottom: 8, resizeMode: 'contain' },
+  teamName: { color: '#333', fontWeight: '800', fontSize: 13, textAlign: 'center' },
+  vsText: { color: '#EEE', fontWeight: '900', fontSize: 18 },
+  matchFooter: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F5F5F5', paddingTop: 15 },
+  matchDetails: { color: '#999', fontSize: 12, marginLeft: 6 },
+  sectionTitle: { color: '#1A1A1A', fontSize: 14, fontWeight: '800', marginBottom: 18 },
   menuGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', height: 130, backgroundColor: '#181818', borderRadius: 20, padding: 15, marginBottom: 16, justifyContent: 'center', borderWidth: 1, borderColor: '#222' },
-  iconContainer: { backgroundColor: '#252525', padding: 8, borderRadius: 10, marginBottom: 12, alignSelf: 'flex-start' },
-  cardTitle: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15},
-  matchBadge: { backgroundColor: '#D4AF3720', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8},
-  bellIcon: { padding: 5, backgroundColor: '#1A1A1A', borderRadius: 10},
+  card: { width: '48%', height: 130, backgroundColor: '#FFF', borderRadius: 22, padding: 18, marginBottom: 16, justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' },
+  iconContainer: { backgroundColor: '#F0F2F5', padding: 10, borderRadius: 14, marginBottom: 12, alignSelf: 'flex-start' },
+  cardTitle: { color: '#2D2D2D', fontWeight: '700', fontSize: 14 },
+  
+  // Estilos do Card de Vantagens
+  vantagensCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 15, marginBottom: 25, borderLeftWidth: 5, borderLeftColor: '#D4AF37', elevation: 3 },
+  vantagensHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  vantagensTitle: { color: '#D4AF37', fontWeight: '800', fontSize: 12, marginLeft: 8 },
+  vantagensText: { color: '#444', fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  vantagensBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0F0F0', padding: 10, borderRadius: 10 },
+  vantagensBtnText: { fontWeight: '700', fontSize: 12 }
 });
