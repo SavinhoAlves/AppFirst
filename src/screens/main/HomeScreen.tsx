@@ -22,26 +22,21 @@ export default function HomeScreen({ navigation }: any) {
   const [nextMatch, setNextMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Define se o usuário é VIP (Sócio Ativo)
-  // Se o perfil existir e 'is_active' for true, ele é VIP.
   const isVip = userProfile?.is_active === true;
 
-  // 1. Formatação de Data
   const formatEventDate = (timestamp: number) => {
-    if (!timestamp) return "";
+    if (!timestamp) return '';
     const date = new Date(timestamp * 1000); 
     const day = date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
     const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     return `${day.toUpperCase()} • ${time}`;
   };
 
-  // 2. Permissões de Notificação
   async function requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') console.log('Permissão de notificação negada');
   }
 
-  // 3. Carregamento de Dados
   useEffect(() => {
     async function loadData() {
       try {
@@ -57,7 +52,7 @@ export default function HomeScreen({ navigation }: any) {
         
         await requestPermissions();
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error('Erro ao carregar dados:', error);
       } finally {
         setLoading(false);
       }
@@ -65,7 +60,6 @@ export default function HomeScreen({ navigation }: any) {
     loadData();
   }, []);
 
-  // 4. Lógica de Navegação
   const handleNavigation = (screenName: string) => {
     if (!screenName) return;
     navigation.navigate(screenName);
@@ -75,14 +69,14 @@ export default function HomeScreen({ navigation }: any) {
     if (userProfile?.role === 'master' || userProfile?.role === 'admin') {
       navigation.navigate('Financeiro');
     } else {
-      Alert.alert("Acesso Restrito", "Apenas administradores podem acessar o financeiro.");
+      Alert.alert('Acesso Restrito', 'Apenas administradores podem acessar o financeiro.');
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert("Sair", "Deseja encerrar sua sessão?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sair", onPress: () => supabase.auth.signOut(), style: "destructive" }
+    Alert.alert('Sair', 'Deseja encerrar sua sessão?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', onPress: () => supabase.auth.signOut(), style: 'destructive' }
     ]);
   };
 
@@ -91,21 +85,21 @@ export default function HomeScreen({ navigation }: any) {
     const reminderTime = new Date((nextMatch.timestamp * 1000) - 15 * 60 * 1000); 
     
     if (reminderTime < new Date()) {
-      Alert.alert("Atenção", "O jogo já está muito próximo!");
+      Alert.alert('Atenção', 'O jogo já está muito próximo!');
       return;
     }
 
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "💢 O GIGANTE VAI JOGAR!",
+          title: '💢 O GIGANTE VAI JOGAR!',
           body: `${nextMatch.homeTeam.name} x ${nextMatch.awayTeam.name} em 15 min!`,
         },
         trigger: { date: reminderTime } as Notifications.DateTriggerInput,
       });
-      Alert.alert("Sucesso", "Lembrete ativado!");
+      Alert.alert('Sucesso', 'Lembrete ativado!');
     } catch (e) {
-      Alert.alert("Erro", "Não foi possível agendar.");
+      Alert.alert('Erro', 'Não foi possível agendar.');
     }
   };
 
@@ -117,15 +111,17 @@ export default function HomeScreen({ navigation }: any) {
     );
   }
 
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'master';
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.welcome}>Saudações Vascaínas,</Text>
-            <Text style={styles.userName}>{userProfile?.full_name || "Sócio"}</Text>
+            <Text style={styles.userName}>{userProfile?.full_name || 'Sócio'}</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
             <Ionicons name="log-out-outline" size={20} color="#666" />
@@ -161,7 +157,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={styles.matchFooter}>
                 <Ionicons name="location-outline" size={14} color="#D4AF37" />
                 <Text style={styles.matchDetails}>
-                  {nextMatch.venue} • {formatEventDate(nextMatch.timestamp)}
+                  {`${nextMatch.venue} • ${formatEventDate(nextMatch.timestamp)}`}
                 </Text>
               </View>
             </>
@@ -170,25 +166,23 @@ export default function HomeScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* Card de Vantagens (Logo abaixo do jogo conforme solicitado) */}
+        {/* Card de Vantagens */}
         <View style={styles.vantagensCard}>
           <View style={styles.vantagensHeader}>
             <Ionicons name="star" size={18} color="#D4AF37" />
             <Text style={styles.vantagensTitle}>CLUBE DE VANTAGENS</Text>
           </View>
-          
           <Text style={styles.vantagensText}>
             {isVip 
-              ? "Você tem 15% de desconto em toda a rede parceira para o próximo jogo!" 
-              : "Torne-se sócio VIP e libere descontos exclusivos em barbearias e bares!"}
+              ? 'Você tem 15% de desconto em toda a rede parceira para o próximo jogo!' 
+              : 'Torne-se sócio VIP e libere descontos exclusivos em barbearias e bares!'}
           </Text>
-
           <TouchableOpacity 
             style={styles.vantagensBtn}
             onPress={() => isVip ? handleNavigation('Vantagens') : handleNavigation('Financeiro')}
           >
             <Text style={styles.vantagensBtnText}>
-              {isVip ? "VER PARCEIROS" : "QUERO SER VIP"}
+              {isVip ? 'VER PARCEIROS' : 'QUERO SER VIP'}
             </Text>
             <Ionicons name="arrow-forward" size={16} color="#1A1A1A" />
           </TouchableOpacity>
@@ -212,27 +206,26 @@ export default function HomeScreen({ navigation }: any) {
             icon="bus-outline" 
             onPress={() => handleNavigation('Caravanas')} 
           />
-          
-          {(userProfile?.role === 'admin' || userProfile?.role === 'master') && (
-             <MenuCard 
-             title="Gestão Sócios" 
-             icon="people-outline" 
-             onPress={() => handleNavigation('SocioManagement')} 
-           />
+          {isAdmin && (
+            <MenuCard 
+              title="Gestão Sócios" 
+              icon="people-outline" 
+              onPress={() => handleNavigation('SocioManagement')} 
+            />
           )}
-
           <MenuCard 
             title="Financeiro" 
             icon="wallet-outline" 
             onPress={handleFinanceiro} 
           />
         </View>
+
       </ScrollView>
     </View>
   );
 }
 
-function MenuCard({ title, icon, onPress }: { title: string, icon: any, onPress: () => void }) {
+function MenuCard({ title, icon, onPress }: { title: string; icon: any; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconContainer}>
@@ -269,12 +262,10 @@ const styles = StyleSheet.create({
   card: { width: '48%', height: 130, backgroundColor: '#FFF', borderRadius: 22, padding: 18, marginBottom: 16, justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' },
   iconContainer: { backgroundColor: '#F0F2F5', padding: 10, borderRadius: 14, marginBottom: 12, alignSelf: 'flex-start' },
   cardTitle: { color: '#2D2D2D', fontWeight: '700', fontSize: 14 },
-  
-  // Estilos do Card de Vantagens
   vantagensCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 15, marginBottom: 25, borderLeftWidth: 5, borderLeftColor: '#D4AF37', elevation: 3 },
   vantagensHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   vantagensTitle: { color: '#D4AF37', fontWeight: '800', fontSize: 12, marginLeft: 8 },
   vantagensText: { color: '#444', fontSize: 13, lineHeight: 18, marginBottom: 12 },
   vantagensBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0F0F0', padding: 10, borderRadius: 10 },
-  vantagensBtnText: { fontWeight: '700', fontSize: 12 }
+  vantagensBtnText: { fontWeight: '700', fontSize: 12 },
 });

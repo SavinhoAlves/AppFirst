@@ -5,12 +5,12 @@ import {
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
+  ActivityIndicator, 
+  Alert, 
+  ScrollView, 
   KeyboardAvoidingView, 
-  Platform, 
-  Image,
-  ActivityIndicator,
-  Alert,
-  ScrollView
+  Platform,
+  Image
 } from 'react-native';
 import { supabase } from '../../services/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,11 +48,11 @@ export default function LoginScreen({ navigation }: any) {
         .single();
 
       if (profileError || !profile) {
-        throw new Error("CPF não encontrado ou não cadastrado.");
+        throw new Error('CPF não encontrado ou não cadastrado.');
       }
 
       if (!profile.is_active) {
-        throw new Error("Sua conta está inativa na Capitania.");
+        throw new Error('Sua conta está inativa na Capitania.');
       }
 
       const { error: authError } = await supabase.auth.signInWithPassword({ 
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }: any) {
       });
       
       if (authError) {
-        throw new Error("Senha incorreta. Tente novamente.");
+        throw new Error('Senha incorreta. Tente novamente.');
       }
 
     } catch (error: any) {
@@ -90,7 +90,6 @@ export default function LoginScreen({ navigation }: any) {
       >
         <View style={styles.header}>
           <Image 
-            // source={require('../../assets/img/logo-capitania-3.png')}
             source={require('../../assets/img/NEW-LOGO-CAPITANIA.png')} 
             style={styles.logo} 
           />
@@ -128,7 +127,7 @@ export default function LoginScreen({ navigation }: any) {
               onBlur={() => setFocusedInput(null)}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#999" />
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#999" />
             </TouchableOpacity>
           </View>
 
@@ -163,33 +162,33 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F8F9FA' // Fundo Light
+    backgroundColor: '#F8F9FA',
   },
   scrollInner: { 
     flexGrow: 1, 
     paddingHorizontal: 30, 
-    justifyContent: 'space-between' 
+    justifyContent: 'space-between',
   },
   header: { 
     alignItems: 'center', 
-    marginTop: 20 
+    marginTop: 20,
   },
   logo: { 
     width: 180, 
     height: 180, 
     resizeMode: 'contain',
-    marginBottom: 30
+    marginBottom: 30,
   },
   subtitle: { 
     color: '#666', 
     fontSize: 14, 
     fontWeight: '500',
-    textAlign: 'center'
+    textAlign: 'center',
   },
   form: { 
     flex: 1, 
     justifyContent: 'center',
-    marginVertical: 20
+    marginVertical: 20,
   },
   fieldLabel: { 
     color: '#444', 
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     fontWeight: '700', 
     marginBottom: 8, 
     textTransform: 'uppercase', 
-    letterSpacing: 1 
+    letterSpacing: 1,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -209,8 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1.5,
     borderColor: '#EEE',
-    // Sombra leve para elevação no modo claro
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
@@ -218,59 +216,59 @@ const styles = StyleSheet.create({
   },
   inputContainerFocused: { 
     borderColor: '#B8860B', 
-    backgroundColor: '#FFF' 
+    backgroundColor: '#FFF',
   },
   inputIcon: { 
-    marginRight: 12 
+    marginRight: 12,
   },
   input: { 
     flex: 1, 
     color: '#222', 
     fontSize: 16, 
-    fontWeight: '500' 
+    fontWeight: '500',
   },
   eyeIcon: { 
-    padding: 5 
+    padding: 5,
   },
   forgotBtn: { 
     alignSelf: 'flex-end', 
     marginBottom: 30, 
-    marginTop: -5 
+    marginTop: -5,
   },
   forgotText: { 
     color: '#B8860B', 
     fontSize: 13, 
-    fontWeight: '600' 
+    fontWeight: '600',
   },
   loginBtn: {
-    backgroundColor: '#222', // Botão escuro para contraste no light mode
+    backgroundColor: '#222',
     height: 58,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10
+    marginTop: 10,
   },
   loginBtnDisabled: { 
-    opacity: 0.7 
+    opacity: 0.7,
   },
   loginBtnText: { 
-    color: '#D4AF37', // Texto dourado no botão preto
+    color: '#D4AF37',
     fontSize: 15, 
     fontWeight: '800', 
-    letterSpacing: 1.5 
+    letterSpacing: 1.5,
   },
   footer: { 
     flexDirection: 'row', 
     justifyContent: 'center', 
-    paddingVertical: 10 
+    paddingVertical: 10,
   },
   footerText: { 
     color: '#666', 
-    fontSize: 14 
+    fontSize: 14,
   },
   signUpText: { 
     color: '#B8860B', 
     fontSize: 14, 
-    fontWeight: '700' 
+    fontWeight: '700',
   },
 });
