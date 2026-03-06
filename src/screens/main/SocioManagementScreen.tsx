@@ -96,7 +96,7 @@ export default function SocioManagementScreen({ navigation }: any) {
             <Text style={styles.count}>{`${filteredSocios.length} cadastrados`}</Text>
           </View>
           <TouchableOpacity onPress={handleShareOptions} style={styles.shareButton}>
-            <Ionicons name="share-outline" size={24} color="#D4AF37" />
+            <Ionicons name="share-social-outline" size={24} color="#D4AF37" />
           </TouchableOpacity>
         </View>
       </View>

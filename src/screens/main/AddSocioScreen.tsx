@@ -83,13 +83,77 @@ export default function AddSocioScreen({ navigation }: any) {
     });
   };
 
+  const isDateValid = (dateStr: string) => {
+  // Verifica se tem o formato completo DD/MM/YYYY
+  if (dateStr.length !== 10) return false;
+
+  const [day, month, year] = dateStr.split('/').map(Number);
+  
+  // Verifica intervalos básicos
+  if (month < 1 || month > 12 || year < 1900 || year > new Date().getFullYear()) {
+    return false;
+  }
+
+  // Valida dias de acordo com o mês (incluindo anos bissextos)
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+};
+
+const validateCPF = (cpf: string) => {
+  const cleanCPF = cpf.replace(/\D/g, '');
+
+  // Verifica se tem 11 dígitos ou se é uma sequência repetida (inválida)
+  if (cleanCPF.length !== 11 || !!cleanCPF.match(/(\d)\1{10}/)) return false;
+
+  const digits = cleanCPF.split('').map(Number);
+
+  // Validação do 1º Dígito Verificador
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += digits[i] * (10 - i);
+  let check1 = (sum * 10) % 11;
+  if (check1 === 10 || check1 === 11) check1 = 0;
+  if (check1 !== digits[9]) return false;
+
+  // Validação do 2º Dígito Verificador
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += digits[i] * (11 - i);
+  let check2 = (sum * 10) % 11;
+  if (check2 === 10 || check2 === 11) check2 = 0;
+  if (check2 !== digits[10]) return false;
+
+  return true;
+};
+
   async function handleAddSocio() {
     const { full_name, email, password, cpf, phone, birth_date, role, street, number, neighborhood, city, state, membership_type } = newSocio;
     const rawCPF = cpf.replace(/\D/g, '');
 
+    // 1. Campos obrigatórios
     if (!full_name || !email || !password || rawCPF.length !== 11) {
       Alert.alert("Erro", "Nome, E-mail, Senha e CPF são obrigatórios.");
       return;
+    }
+
+    // 2. Validação de Data de Nascimento (que fizemos antes)
+    if (birth_date && !isDateValid(birth_date)) {
+        Alert.alert("Data Inválida", "Por favor, insira uma data de nascimento válida (DD/MM/AAAA).");
+        return;
+    }
+
+    // 3. VALIDAÇÃO MATEMÁTICA DO CPF
+    if (!validateCPF(rawCPF)) {
+        Alert.alert("CPF Inválido", "O número de CPF informado não é válido.");
+        return;
+    }
+
+    // Validação de Senha
+    if (!isPasswordValid || !passwordsMatch) {
+        Alert.alert("Erro", "Verifique os requisitos de senha e confirmação.");
+        return;
     }
 
     try {
@@ -170,11 +234,31 @@ export default function AddSocioScreen({ navigation }: any) {
             <View style={styles.row}>
               <View style={{ flex: 1.2, marginRight: 10 }}>
                 <Text style={styles.label}>CPF *</Text>
-                <TextInput style={styles.input} value={newSocio.cpf} keyboardType="numeric" onChangeText={(t) => setNewSocio({...newSocio, cpf: maskCPF(t)})} placeholder="000.000.000-00" />
+                    <TextInput 
+                    style={[
+                        styles.input, 
+                        newSocio.cpf.length === 14 && !validateCPF(newSocio.cpf) && { borderColor: '#E53935', borderWidth: 1.5 }
+                    ]} 
+                    value={newSocio.cpf}
+                    keyboardType="numeric"
+                    onChangeText={(t) => setNewSocio({...newSocio, cpf: maskCPF(t)})}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>Nascimento</Text>
-                <TextInput style={styles.input} value={newSocio.birth_date} keyboardType="numeric" onChangeText={(t) => setNewSocio({...newSocio, birth_date: maskDate(t)})} placeholder="DD/MM/AAAA" />
+                    <TextInput 
+                    style={[
+                        styles.input, 
+                        newSocio.birth_date.length === 10 && !isDateValid(newSocio.birth_date) && { borderColor: '#E53935' }
+                    ]} 
+                    value={newSocio.birth_date}
+                    keyboardType="numeric"
+                    onChangeText={(t) => setNewSocio({...newSocio, birth_date: maskDate(t)})}
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    />
               </View>
             </View>
 
@@ -227,13 +311,30 @@ export default function AddSocioScreen({ navigation }: any) {
           <View style={styles.mainCard}>
             <Text style={styles.label}>Senha de Acesso *</Text>
             <View style={styles.passwordContainer}>
-              <TextInput style={[styles.input, { flex: 1, borderWidth: 0, marginBottom: 0 }]} value={newSocio.password} secureTextEntry={!showPassword} onChangeText={checkPassword} onFocus={() => setIsPasswordFocused(true)} onBlur={() => setIsPasswordFocused(false)} placeholder="6 a 8 dígitos" textContentType="oneTimeCode" />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}><Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#999" /></TouchableOpacity>
+              <TextInput style={[
+                styles.input, { flex: 1, borderWidth: 0, marginBottom: 0 }]} 
+                value={newSocio.password} 
+                secureTextEntry={!showPassword} 
+                onChangeText={checkPassword} 
+                onFocus={() => setIsPasswordFocused(true)} 
+                onBlur={() => setIsPasswordFocused(false)} 
+                placeholder="6 a 10 dígitos" 
+                textContentType="oneTimeCode" 
+                />
+                <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)} 
+                style={styles.eyeIcon}>
+                <Ionicons 
+                name={showPassword ? "eye-off" : "eye"} 
+                size={20} 
+                color="#999" 
+                />
+                </TouchableOpacity>
             </View>
 
             {isPasswordFocused && (
               <View style={styles.requirementsContainer}>
-                <RequirementItem met={passwordRequirements.length} text="6 a 8 caracteres" />
+                <RequirementItem met={passwordRequirements.length} text="6 a 10 caracteres" />
                 <RequirementItem met={passwordRequirements.uppercase} text="Maiúscula" />
                 <RequirementItem met={passwordRequirements.lowercase} text="Minúscula" />
                 <RequirementItem met={passwordRequirements.number} text="Número" />
