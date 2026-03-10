@@ -7,6 +7,13 @@ import * as Linking from 'expo-linking'; // 1. Importe o Linking do Expo
 import { supabase } from './src/services/supabase'; 
 import { AuthStack } from './src/navigation/AuthStack'; 
 import { MainStack } from './src/navigation/MainStack'; 
+import { LogBox } from 'react-native';
+
+// Ignora avisos específicos que começam com esse texto
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
 
 // 2. Configure o mapeamento de URLs para os nomes das telas
 const linking = {
@@ -24,7 +31,8 @@ const linking = {
       AddSocio: 'novo-socio',
       CardapioScreen: 'cardapio',
       GestaoEstoque: 'estoque',
-      BalcaoScreen: 'balcao', // <--- Isso fará o /balcao funcionar
+      CozinhaScreen: 'cozinha', // <--- Isso fará o /cozinha funcionar
+      MeusPedidosScreen: 'meus-pedidos', // <--- Isso fará o /meus-pedidos funcionar
     },
   },
 };

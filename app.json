@@ -2,6 +2,7 @@
   "expo": {
     "name": "AppFirst",
     "slug": "AppFirst",
+    "scheme": "meu-app-socios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

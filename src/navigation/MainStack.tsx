@@ -7,7 +7,9 @@ import CruzDeMalteScreen from '../screens/main/CruzDeMalteScreen';
 import AddSocioScreen from '../screens/main/AddSocioScreen';
 import CardapioScreen from '../screens/main/CardapioScreen';
 import GestaoEstoque from '../screens/main/GestaoEstoque';
-import BalcaoScreen from '../screens/main/BalcaoScreen';
+import CozinhaScreen from '../screens/main/CozinhaScreen';
+import MeusPedidosScreen from '../screens/main/MeusPedidosScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -26,7 +28,8 @@ export function MainStack() {
       <Stack.Screen name="AddSocio" component={AddSocioScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CardapioScreen" component={require('../screens/main/CardapioScreen').default} options={{ headerShown: false }} />
       <Stack.Screen name="GestaoEstoque" component={require('../screens/main/GestaoEstoque').default} options={{ headerShown: false }} />
-      <Stack.Screen name="BalcaoScreen" component={require('../screens/main/BalcaoScreen').default} options={{ headerShown: false }} />
+      <Stack.Screen name="CozinhaScreen" component={require('../screens/main/CozinhaScreen').default} options={{ headerShown: false }} />
+      <Stack.Screen name="MeusPedidosScreen" component={require('../screens/main/MeusPedidosScreen').default} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
