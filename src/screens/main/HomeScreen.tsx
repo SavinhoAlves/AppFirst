@@ -209,6 +209,14 @@ export default function HomeScreen({ navigation }: any) {
           {(userProfile?.role === 'admin' || userProfile?.role === 'master') && (
             <MenuCard title="Gestão Sócios" icon="people-outline" onPress={() => handleNavigation('SocioManagement')} />
           )}
+          {/* NOVO BOTÃO: GESTÃO DE ENTREGADORES */}
+          {(userProfile?.role === 'admin' || userProfile?.role === 'master') && (
+            <MenuCard 
+              title="Entregadores" 
+              icon="bicycle-outline" 
+              onPress={() => handleNavigation('GestaoEntregadores')} 
+            />
+          )}
           <MenuCard title="Financeiro" icon="wallet-outline" onPress={handleFinanceiro} />
         </View>
       </ScrollView>

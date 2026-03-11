@@ -9,7 +9,9 @@ import CardapioScreen from '../screens/main/CardapioScreen';
 import GestaoEstoque from '../screens/main/GestaoEstoque';
 import CozinhaScreen from '../screens/main/CozinhaScreen';
 import MeusPedidosScreen from '../screens/main/MeusPedidosScreen';
-
+import { EntregadorStack } from './EntregadorStack'; // Importa o Stack do entregador
+import GestaoEntregadoresScreen from '../screens/admin/GestaoEntregadoresScreen';
+import AddEntregadorScreen from '../screens/entregador/AddEntregadorScreen';
 
 const Stack = createStackNavigator();
 
@@ -30,6 +32,8 @@ export function MainStack() {
       <Stack.Screen name="GestaoEstoque" component={require('../screens/main/GestaoEstoque').default} options={{ headerShown: false }} />
       <Stack.Screen name="CozinhaScreen" component={require('../screens/main/CozinhaScreen').default} options={{ headerShown: false }} />
       <Stack.Screen name="MeusPedidosScreen" component={require('../screens/main/MeusPedidosScreen').default} options={{ headerShown: false }} />
+      <Stack.Screen name="GestaoEntregadores" component={GestaoEntregadoresScreen} options={{ title: 'Gerenciar Entregadores' }} />
+      <Stack.Screen name="AddEntregadorScreen" component={AddEntregadorScreen} options={{ title: 'Adicionar Entregador' }} />
     </Stack.Navigator>
   );
 }
