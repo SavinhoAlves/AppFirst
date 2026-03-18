@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Alert, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,14 +7,14 @@ import * as Linking from 'expo-linking';
 import { supabase } from './src/services/supabase'; 
 import { AuthStack } from './src/navigation/AuthStack'; 
 import { MainStack } from './src/navigation/MainStack'; 
-// Supondo que você criará esse Stack para os entregadores
-import { EntregadorStack } from './src/navigation/EntregadorStack'; 
 import { LogBox } from 'react-native';
 
-LogBox.ignoreLogs([
-  'expo-notifications: Android Push notifications',
-  '`expo-notifications` functionality is not fully supported in Expo Go',
-]);
+LogBox.ignoreLogs(['expo-notifications', 'expo-go']);
+
+// Carregamento seguro: evita que o Web tente compilar o mapa
+const EntregadorStack = Platform.OS !== 'web' 
+  ? require('./src/navigation/EntregadorStack').EntregadorStack 
+  : null;
 
 const linking = {
   prefixes: [Linking.createURL('/')],
@@ -23,9 +23,8 @@ const linking = {
       Login: 'login',
       Register: 'cadastro',
       Home: 'home',
-      EntregasLista: 'entregas', // Rota para entregador
-      MapaEntrega: 'mapa-entrega',
-      // ... suas outras rotas
+      CozinhaScreen: 'cozinha', 
+      MeusPedidosScreen: 'meus-pedidos',
     },
   },
 };
@@ -36,56 +35,26 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Função para verificar perfil e status
-    const checkUserRole = async (currentSession: any) => {
-      if (!currentSession) {
-        setUserRole(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
+    async function checkUser() {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
+      
+      if (currentSession) {
         const { data: profile } = await supabase
-          .from('profiles') // Ajuste para o nome da sua tabela de perfis
+          .from('profiles')
           .select('role')
           .eq('id', currentSession.user.id)
           .single();
-
-        if (profile?.role === 'entregador') {
-          // Verificação extra na tabela de entregadores ativos
-          const { data: entregadorData } = await supabase
-            .from('entregadores')
-            .select('ativo')
-            .eq('id', currentSession.user.id)
-            .single();
-
-          if (!entregadorData || !entregadorData.ativo) {
-            Alert.alert("Acesso Negado", "Sua conta de entregador está inativa.");
-            await supabase.auth.signOut();
-            setUserRole(null);
-          } else {
-            setUserRole('entregador');
-          }
-        } else {
-          setUserRole(profile?.role || 'socio');
-        }
-      } catch (error) {
-        console.error("Erro ao verificar role:", error);
-      } finally {
-        setLoading(false);
+        setUserRole(profile?.role || 'socio');
       }
-    };
+      setLoading(false);
+    }
 
-    // Sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      checkUserRole(session);
-    });
+    checkUser();
 
-    // Ouvinte de mudança de estado
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession);
-      checkUserRole(currentSession);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, _session) => {
+      setSession(_session);
+      if (!_session) setUserRole(null);
     });
 
     return () => subscription.unsubscribe();
@@ -105,7 +74,7 @@ export default function App() {
         <StatusBar style="dark" />
         {!session ? (
           <AuthStack />
-        ) : userRole === 'entregador' ? (
+        ) : (userRole === 'entregador' && Platform.OS !== 'web' && EntregadorStack) ? (
           <EntregadorStack /> 
         ) : (
           <MainStack />

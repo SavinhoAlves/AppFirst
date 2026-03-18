@@ -45,7 +45,7 @@ export default function CruzDeMalteScreen({ navigation }: any) {
   // 2. Função para buscar o histórico de presenças
   const fetchCheckins = async (userId: string) => {
     const { data } = await supabase
-      .from('checkin')
+      .from('checkins')
       .select('created_at')
       .eq('socio_id', userId)
       .order('created_at', { ascending: false })
@@ -88,8 +88,12 @@ export default function CruzDeMalteScreen({ navigation }: any) {
       if (!user) return;
 
       const { data: insertData, error } = await supabase
-        .from('checkin')
-        .insert([{ socio_id: user.id }])
+        .from('checkins')
+        .insert([{ 
+          socio_id: user.id,
+          latitude: latitude,
+          longitude: longitude
+        }])
         .select()
         .single();
 
@@ -166,7 +170,7 @@ export default function CruzDeMalteScreen({ navigation }: any) {
         </View>
 
         {/* BOTÃO DE CHECK-IN */}
-        <Text style={styles.sectionLabel}>PRESENÇA NO QG</Text>
+        <Text style={styles.sectionLabel}>PRESENÇA NA CAPITANIA</Text>
         <TouchableOpacity 
           style={[styles.checkInBtn, checkingIn && { opacity: 0.7 }]} 
           onPress={handleCheckIn}
