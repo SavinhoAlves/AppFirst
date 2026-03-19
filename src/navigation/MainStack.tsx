@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Platform } from 'react-native';
 
-// Imports seguros para Web e Mobile
+// Seus imports existentes...
 import HomeScreen from '../screens/main/HomeScreen';
 import SocioManagementScreen from '../screens/main/SocioManagementScreen';
 import FinanceiroScreen from '../screens/main/FinanceiroScreen';
@@ -15,19 +15,30 @@ import MeusPedidosScreen from '../screens/main/MeusPedidosScreen';
 import GestaoEntregadoresScreen from '../screens/admin/GestaoEntregadoresScreen';
 import AddEntregadorScreen from '../screens/entregador/AddEntregadorScreen';
 import MapaEntregaScreen from '../screens/entregador/MapaEntregaScreen';
-import ChatScreen from '../screens/main/ChatScreen'; // Importe o arquivo acima
+import ChatScreen from '../screens/main/ChatScreen';
+
+// --- DEFINIÇÃO DE TIPOS PARA O TYPESCRIPT ---
+interface MainStackProps {
+  initialRoute?: string;
+}
 
 const Stack = createStackNavigator();
 
-export function MainStack() {
+// Adicionamos { initialRoute = "Home" }: MainStackProps para aceitar a prop do App.tsx
+export function MainStack({ initialRoute = "Home" }: MainStackProps) {
   return (
     <Stack.Navigator 
+      // Esta linha faz o app abrir na tela correta (Home ou HomeEntregador)
+      initialRouteName={initialRoute}
       screenOptions={{ 
         headerShown: false,
-        cardStyle: { backgroundColor: '#F8F9FA' } 
+        cardStyle: { backgroundColor: 'transparent' } 
       }}
     >
+      {/* Tela Principal (Sócio/Admin) */}
       <Stack.Screen name="Home" component={HomeScreen} />
+      
+      {/* Painel da Cozinha (Recuperado seu acesso) */}
       <Stack.Screen name="CozinhaScreen" component={CozinhaScreen} />
       
       {/* Telas Administrativas */}
@@ -41,18 +52,21 @@ export function MainStack() {
       <Stack.Screen name="GestaoEntregadores" component={GestaoEntregadoresScreen} />
       <Stack.Screen name="AddEntregadorScreen" component={AddEntregadorScreen} />
 
-      {/* ESTA É A CHAVE: 
-          Só carregamos o EntregadorStack se NÃO for Web.
-          Usamos require() aqui dentro para que o compilador Web ignore o arquivo.
-      */}
+      {/* Painel do Entregador */}
       {Platform.OS !== 'web' && (
         <Stack.Screen 
-          name="EntregadorStack" 
-          component={require('./EntregadorStack').EntregadorStack} 
+          name="HomeEntregador" 
+          // .default é necessário por causa do require()
+          component={require('../screens/entregador/HomeEntregador').default} 
         />
       )}
+      
+      {/* Detalhes do Pedido */}
+      <Stack.Screen 
+        name="DetalhesPedido" 
+        component={require('../screens/entregador/DetalhesPedidoScreen').default} 
+      />
 
-      {/* Rota do Mapa - Agora registrada corretamente para o Sócio */}
       <Stack.Screen name="MapaEntregaScreen" component={MapaEntregaScreen} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ title: 'Chat' }} />
     </Stack.Navigator>
