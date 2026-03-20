@@ -12,38 +12,39 @@ export default function CozinhaScreen() {
   const [pedidoParaImprimir, setPedidoParaImprimir] = useState<any>(null);
   const [faturamentoDia, setFaturamentoDia] = useState(0);
 
-  const fetchPedidos = async () => {
+  const fetchPedidos = async (silencioso = false) => {
     try {
-      // 1. Busca pedidos ativos (Note que incluímos o novo status e removemos o 'concluido')
-      const { data: pedidosData } = await supabase
+      if (!silencioso) setLoading(true);
+
+      const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
         .select('*')
-        .in('status', ['pendente', 'em_producao', 'aguardando_entregador', 'saiu_para_entrega', 'entregador_no_local']) 
+        .in('status', ['pendente', 'em_producao', 'aguardando_entregador', 'saiu_para_entrega', 'entregador_no_local'])
         .order('created_at', { ascending: true });
 
-      // 2. Cálculo do faturamento
+      if (pedidosError) console.error("Erro Pedidos:", pedidosError.message);
+
       const hoje = new Date().toISOString().split('T')[0];
-      const { data: vendasHoje } = await supabase
+      const { data: vendasHoje, error: vendasError } = await supabase
         .from('pedidos')
         .select('valor_total')
         .gte('created_at', hoje)
         .neq('status', 'cancelado');
 
       const total = vendasHoje?.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0) || 0;
-      
+
       setFaturamentoDia(total);
       setPedidos(pedidosData || []);
     } catch (error) {
-      console.error("Erro:", error);
+      console.error("Erro geral na Cozinha:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const mudarStatus = async (id: string, novoStatus: string, pedidoCompleto: any) => {
-    // Baixa estoque apenas na transição para produção
-    if (novoStatus === 'em_producao') {
-      try {
+    try {
+      if (novoStatus === 'em_producao') {
         for (const item of pedidoCompleto.itens || []) {
           const { data: produto } = await supabase
             .from('produtos')
@@ -56,24 +57,26 @@ export default function CozinhaScreen() {
             await supabase.from('produtos').update({ estoque: novoEstoque }).eq('nome', item.nome);
           }
         }
-      } catch (e) { console.error("Erro estoque:", e); }
-    }
+      }
 
-    // Atualiza o banco de dados
-    const { error } = await supabase
-      .from('pedidos')
-      .update({ status: novoStatus })
-      .eq('id', id);
+      const { error } = await supabase
+        .from('pedidos')
+        .update({ status: novoStatus })
+        .eq('id', id);
 
-    if (!error) {
-      fetchPedidos(); 
+      if (!error) fetchPedidos(true); 
+    } catch (e) {
+      console.error("Erro ao mudar status:", e);
     }
   };
 
   const imprimirPedido = (pedido: any) => {
     if (Platform.OS === 'web') {
       setPedidoParaImprimir(pedido);
-      setTimeout(() => { window.print(); setPedidoParaImprimir(null); }, 500);
+      setTimeout(() => { 
+        window.print(); 
+        setPedidoParaImprimir(null); 
+      }, 500);
     }
   };
 
@@ -84,12 +87,20 @@ export default function CozinhaScreen() {
         if (payload.eventType === 'INSERT' && audioAlerta) {
           audioAlerta.play().catch(() => {});
         }
-        fetchPedidos();
-      }).subscribe();
+        fetchPedidos(true);
+      })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#D4AF37" /></View>;
+  if (loading && pedidos.length === 0) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={{ color: '#666', marginTop: 15 }}>Sincronizando com o Balcão...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -107,7 +118,6 @@ export default function CozinhaScreen() {
         </View>
       )}
 
-      {/* HEADER DASHBOARD */}
       <View style={styles.headerDesktop}>
         <View>
           <Text style={styles.title}>Painel de Controle</Text>
@@ -118,11 +128,11 @@ export default function CozinhaScreen() {
             </View>
             <View style={[styles.statBadge, { marginLeft: 12 }]}>
               <Ionicons name="list" size={16} color="#D4AF37" />
-              <Text style={styles.statValue}>{pedidos.length} Pedidos Ativos</Text>
+              <Text style={styles.statValue}>{pedidos.length} Ativos</Text>
             </View>
           </View>
         </View>
-        <Pressable style={styles.btnRefresh} onPress={fetchPedidos}>
+        <Pressable style={styles.btnRefresh} onPress={() => fetchPedidos(false)}>
           <Ionicons name="refresh" size={18} color="#D4AF37" />
           <Text style={styles.btnRefreshText}>Sincronizar</Text>
         </Pressable>
@@ -137,18 +147,24 @@ export default function CozinhaScreen() {
           onPrint={imprimirPedido}
           type="novo" 
         />
+
         <Column 
-          title="COZINHA (PRODUÇÃO)" 
+          title="COZINHA (EM PREPARO)" 
           color="#D4AF37" 
+          // AGORA: Só mostra o que a cozinha realmente tem que fazer
           data={pedidos.filter(p => p.status === 'em_producao')} 
           onAction={mudarStatus} 
           onPrint={imprimirPedido}
           type="producao" 
         />
+
         <Column 
-          title="AGUARDANDO COLETA" 
+          title="EXPEDIÇÃO / ROTA" 
           color="#007AFF" 
-          data={pedidos.filter(p => ['aguardando_entregador', 'saiu_para_entrega', 'entregador_no_local'].includes(p.status))} 
+          // AGORA: Mostra o que está no balcão esperando motoboy E o que já saiu
+          data={pedidos.filter(p => 
+            ['aguardando_entregador', 'saiu_para_entrega', 'entregador_no_local'].includes(p.status)
+          )} 
           onAction={mudarStatus} 
           type="entrega" 
         />
@@ -168,7 +184,7 @@ function Column({ title, color, data, onAction, onPrint, type }: any) {
             pedido={p} 
             type={type}
             onPrint={() => onPrint && onPrint(p)}
-            onAction={(id: string, next: string, pedido: any) => onAction(id, next, pedido)} 
+            onAction={onAction} 
             btnColor={color}
           />
         ))}
@@ -177,20 +193,14 @@ function Column({ title, color, data, onAction, onPrint, type }: any) {
   );
 }
 
-function PedidoCard({ pedido, onAction, onPrint, type, btnColor }: any) {
-  // Define o próximo passo baseado no status atual
-  const getNextStatus = () => {
-    if (pedido.status === 'pendente') return 'em_producao';
-    if (pedido.status === 'em_producao') return 'aguardando_entregador';
-    return null; // Outros status não têm ação no Kanban da cozinha
-  };
-
-  const nextStatus = getNextStatus();
+function PedidoCard({ pedido, onAction, onPrint, btnColor }: any) {
+  // Se o status for pendente -> vai para produção. Se for produção -> vai para aguardando entregador.
+  const nextStatus = pedido.status === 'pendente' ? 'em_producao' : pedido.status === 'em_producao' ? 'aguardando_entregador' : null;
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardId}>#{String(pedido.numero_sequencial).padStart(4, '0')}</Text>
+        <Text style={styles.cardId}>#{String(pedido.numero_sequencial || 0).padStart(4, '0')}</Text>
         <Text style={styles.cardTime}>
           {new Date(pedido.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
@@ -203,8 +213,17 @@ function PedidoCard({ pedido, onAction, onPrint, type, btnColor }: any) {
       </View>
 
       <View style={styles.footerCard}>
-        <Text style={styles.totalPedido}>R$ {Number(pedido.valor_total).toFixed(2)}</Text>
+        <Text style={styles.totalPedido}>R$ {Number(pedido.valor_total || 0).toFixed(2)}</Text>
         <View style={styles.btnGroup}>
+          
+          {/* Badge de Aguardando Entregador (Informativo para a cozinha) */}
+          {pedido.status === 'aguardando_entregador' && (
+            <View style={styles.statusWaitingBadge}>
+              <Ionicons name="time-outline" size={12} color="#FFA500" />
+              <Text style={styles.statusWaitingText}>CHAMANDO MOTO...</Text>
+            </View>
+          )}
+
           {(pedido.status === 'pendente' || pedido.status === 'em_producao') && (
             <Pressable style={styles.printBtn} onPress={onPrint}>
               <Ionicons name="print-outline" size={18} color="#FFF" />
@@ -217,13 +236,12 @@ function PedidoCard({ pedido, onAction, onPrint, type, btnColor }: any) {
               onPress={() => onAction(pedido.id, nextStatus, pedido)}
             >
               <Text style={styles.btnText}>
-                {pedido.status === 'pendente' ? "COZINHA" : "PRONTO"}
+                {pedido.status === 'pendente' ? "INICIAR" : "PRONTO"}
               </Text>
             </Pressable>
           )}
 
-          {/* Indica visualmente quem está com o pedido na coluna de entrega */}
-          {pedido.status === 'saiu_para_entrega' && (
+          {(pedido.status === 'saiu_para_entrega' || pedido.status === 'entregador_no_local') && (
             <View style={styles.statusIndicator}>
               <Ionicons name="bicycle" size={14} color="#007AFF" />
               <Text style={styles.statusIndicatorText}>EM ROTA</Text>
@@ -262,6 +280,8 @@ const styles = StyleSheet.create({
   btnText: { color: '#FFF', fontWeight: '900', fontSize: 10 },
   statusIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statusIndicatorText: { color: '#007AFF', fontWeight: 'bold', fontSize: 10 },
+  statusWaitingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255, 165, 0, 0.1)', padding: 6, borderRadius: 6 },
+  statusWaitingText: { color: '#FFA500', fontWeight: 'bold', fontSize: 9 },
   printContainer: { position: 'absolute', top: -9999, width: 300, backgroundColor: 'white', padding: 20 },
   printHeader: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
   printText: { fontSize: 12, textAlign: 'center' },

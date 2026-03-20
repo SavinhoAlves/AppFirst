@@ -30,6 +30,17 @@ export default function MapaRastreioSocio({ route }: any) {
     { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
   ];
 
+  const traduzirVeiculo = (tipo: string) => {
+  const tipos: { [key: string]: string } = {
+    'motorcycle': 'Motocicleta',
+    'car': 'Carro',
+    'bicycle': 'Bicicleta',
+    'walking': 'A pé',
+    'scooter': 'Patinete/Scooter'
+  };
+  return tipos[tipo.toLowerCase()] || 'Veículo';
+};
+
   const calcularTempoEProgresso = (entregadorLat: number, entregadorLon: number, socioLat: number, socioLon: number) => {
     if (!entregadorLat || !socioLat) return;
 
@@ -161,13 +172,22 @@ export default function MapaRastreioSocio({ route }: any) {
   }, [pedidoId]);
 
   if (loading || !posicaoEntregador) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D4AF37" />
-        <Text style={styles.loadingText}>Localizando entregador...</Text>
+  return (
+    <View style={styles.loadingContainer}>
+      <StatusBar style="light" translucent />
+      
+      {/* Botão de voltar no topo */}
+      <View style={[styles.headerFloating, { top: insets.top + 10 }]}>
+        <TouchableOpacity style={styles.miniBackBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color="#1A1A1A" />
+        </TouchableOpacity>
       </View>
-    );
-  }
+
+      <ActivityIndicator size="large" color="#D4AF37" />
+      <Text style={styles.loadingText}>Localizando entregador...</Text>
+    </View>
+  );
+}
 
   return (
     <View style={styles.container}>
@@ -232,10 +252,15 @@ export default function MapaRastreioSocio({ route }: any) {
           <View style={{ flex: 1 }}>
             <Text style={styles.infoTitle}>{dadosEntregador?.full_name || 'Entregador'}</Text>
             {dadosEntregador?.entregadores ? (
-              <Text style={styles.infoSubtitle}>
-                {dadosEntregador.entregadores.modelo_veiculo} • 
-                <Text style={{ fontWeight: 'bold', color: '#D4AF37' }}> {dadosEntregador.entregadores.placa_veiculo}</Text>
-              </Text>
+              <View>
+                <Text style={styles.infoSubtitle}>
+                  {/* Exibe o tipo de veículo traduzido + Modelo */}
+                  {traduzirVeiculo(dadosEntregador.entregadores.tipo_veiculo)} • {dadosEntregador.entregadores.modelo_veiculo}
+                </Text>
+                <Text style={[styles.infoSubtitle, { fontWeight: 'bold', color: '#D4AF37' }]}>
+                  Placa: {dadosEntregador.entregadores.placa_veiculo}
+                </Text>
+              </View>
             ) : (
               <Text style={styles.infoSubtitle}>Em rota de entrega</Text>
             )}
